@@ -14,8 +14,12 @@ var movie = new mongoose.Schema({
 // movie.statics.finds = function (conditions,callBack) {
 //     this.find(conditions,callBack);
 // };
+
+movie.statics.findOneByUsername = function (name, callBack) {
+    this.findOne({ _id: name }, callBack);
+};
 movie.statics.findById = function(id,callBack){
-    this.findOne({_id:id},callBack);
+    this.findOne({ _id: id }, callBack);
 };
 movie.statics.findAll = function(callBack){
     this.find({},callBack);

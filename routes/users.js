@@ -1,6 +1,9 @@
 var express = require('express');
 var router = express.Router();
 var user = require('../models/user');
+var comment = require('../models/comment');
+var movie = require('../models/movie');
+var mail = require('../models/mail');
 var crypto = require('crypto');
 const init_token = 'TKL02o';
 
@@ -62,6 +65,134 @@ router.post('/register', function (req, res, next) {
     }
   })
 
+});
+
+// 用户提交评论
+router.post('/postComment', function(req, res, next){
+  // 验证提交参数
+  if (!req.body.username){
+    var username = "匿名用户";
+  }
+  if(!req.body.movie_id){
+    res.json({status:1, message:"电影id为空"});
+  }
+  if (!req.body.context) {
+    res.json({ status: 1, message: "评论内容为空" })
+  }
+  // 根据用户提交，新建一条评论
+  var saveComment = new comment({
+    movie_id: req.body.movie_id,
+    username: req.body.username ? req.body.username : username,
+    context: req.body.context,
+    check: 0
+  })
+
+  // 保存评论内容 
+  saveComment.save(function (err) {
+    if (err) {
+      res.json({ status: 1, message: err })
+    } else {
+      res.json({ status: 0, message: '评论成功' })
+    }
+  })
+});
+
+// 用户点赞
+router.post('/support',function(req, res, next){
+  if(!req.body.movie_id){
+    res.json({status:1 , message: '电影ID为空'});
+  }
+  movie.findById(req.body.movie_id,function(err, supportMovie){
+    movie.updateOne({ _id: req.body.movie_id }, { movieNumSuppose: supportMovie.movieNumSuppose+1}, function(err,){
+      if(err){
+        res.json({ status: 1, message: "点赞失败", data: err })
+      }
+      res.json({ status: 0, message: '点赞成功' })
+    });
+  });
+});
+
+// 用户下载
+router.post('/download', function (req, res, next) {
+  if (!req.body.movie_id) {
+    res.json({ status: 1, message: '电影ID为空' });
+  }
+  movie.findById(req.body.movie_id, function (err, supportMovie) {
+    movie.updateOne({ _id: req.body.movie_id }, { movieNumDownload: supportMovie.movieNumDownload + 1 }, function (err, ) {
+      if (err) {
+        res.json({ status: 1, message: "点赞失败", data: err })
+      }
+      res.json({ status: 0, message: '下载成功', data: supportMovie.movieDownload})
+    });
+  });
+});
+
+//用户发送站内信
+router.post('/sendEmail', function (req, res, next) {
+
+  if (!req.body.token) {
+    res.json({ status: 1, message: "用户登录状态错误" })
+  }
+  if (!req.body.user_id) {
+    res.json({ status: 1, message: "用户登录状态出错" })
+  }
+  if (!req.body.toUserName) {
+    res.json({ status: 1, message: "未选择相关的用户" })
+  }
+  if (!req.body.title) {
+    res.json({ status: 1, message: '标题不能为空' })
+  }
+  if (!req.body.context) {
+    res.json({ status: 1, message: '内容不能为空' })
+  }
+  if (req.body.token == getMD5Password(req.body.user_id)) {
+    //    存入数据库之前需要先去拿出发送至的user_id
+    user.findByUsername(req.body.toUserName, function (err, toUser) {
+      if (toUser.length != 0) {
+        var NewEmail = new mail({
+          fromUser: req.body.user_id,
+          toUser: toUser[0]._id,
+          title: req.body.title,
+          context: req.body.context
+        })
+        NewEmail.save(function () {
+          res.json({ status: 0, message: "发送成功" })
+        })
+      } else {
+        res.json({ status: 1, message: '您发送的对象不存在' })
+      }
+    })
+  } else {
+    res.json({ status: 1, message: "用户登录错误" })
+  }
+});
+
+//用户显示站内信，其中的receive参数的意义当为1时是发送的内容，2是收到的内容
+router.post('/showEmail', function (req, res, next) {
+  if (!req.body.token) {
+    res.json({ status: 1, message: "用户登录状态错误" })
+  }
+  if (!req.body.user_id) {
+    res.json({ status: 1, message: "用户登录状态出错" })
+  }
+  if (!req.body.receive) {
+    res.json({ status: 1, message: "参数出错" })
+  }
+  if (req.body.token == getMD5Password(req.body.user_id)) {
+    if (req.body.receive == 1) {
+      //发送的站内信
+      mail.findByFromUserId(req.body.user_id, function (err, sendMail) {
+        res.json({ status: 0, message: "获取成功", data: sendMail })
+      })
+    } else {
+      //收到的站内信
+      mail.findByToUserId(req.body.user_id, function (err, receiveMail) {
+        res.json({ status: 0, message: '获取成功', data: receiveMail })
+      })
+    }
+  } else {
+    res.json({ status: 1, message: "用户登录错误" })
+  }
 });
 
 //获取md5值
