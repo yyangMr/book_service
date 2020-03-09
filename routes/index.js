@@ -3,7 +3,7 @@ var express = require('express');
 var router = express.Router();
 // 数据库引入
 var mongoose = require('mongoose');
-var recommend = require('../models/recomend');
+var recommend = require('../models/recommend');
 /* GET home page. */
 router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
