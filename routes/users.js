@@ -112,21 +112,6 @@ router.post('/support',function(req, res, next){
   });
 });
 
-// 用户下载
-router.post('/download', function (req, res, next) {
-  if (!req.body.movie_id) {
-    res.json({ status: 1, message: '电影ID为空' });
-  }
-  movie.findById(req.body.movie_id, function (err, supportMovie) {
-    movie.updateOne({ _id: req.body.movie_id }, { movieNumDownload: supportMovie.movieNumDownload + 1 }, function (err, ) {
-      if (err) {
-        res.json({ status: 1, message: "点赞失败", data: err })
-      }
-      res.json({ status: 0, message: '下载成功', data: supportMovie.movieDownload})
-    });
-  });
-});
-
 //用户发送站内信
 router.post('/sendEmail', function (req, res, next) {
 
